@@ -103,3 +103,26 @@ export function groupFiles(
 
   return benchmarks;
 }
+
+export async function getResultsPath(
+  inputPath: string,
+  folderName: string = "processed-results"
+): Promise<string> {
+  const processedPath = _processPath(inputPath);
+
+  const pathStats = await fs.lstat(processedPath);
+  const resultsPath = pathStats.isDirectory()
+    ? path.join(processedPath, `/${folderName}`)
+    : pathStats.isFile()
+    ? path.resolve(processedPath, "../")
+    : undefined;
+
+  if (resultsPath === undefined)
+    throw new Error(
+      `Path does not point to a folder or a file: ${processedPath}`
+    );
+
+  if (!existsSync(resultsPath)) fs.mkdir(resultsPath);
+
+  return resultsPath;
+}

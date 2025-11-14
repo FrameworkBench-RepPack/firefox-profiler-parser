@@ -56,17 +56,20 @@ export const profileProcessSchema = z.array(
  */
 const profilingLogSchema = z.record(z.string(), z.unknown());
 
-/** A schema representing the profiler data that we are interested in analyzing */
+/**
+ * A schema representing the profiler data that we are interested in analyzing
+ * Some unused parts of the schema have been commented out for optimization purposes
+ */
 export const profilerSchema = z.object({
   meta: fullMetaSchema,
   processes: profileProcessSchema,
-  pages: pageListSchema,
-  counters: countersListSchema,
-  threads: threadListSchema,
+  // pages: pageListSchema,
+  // counters: countersListSchema,
+  // threads: threadListSchema,
 
   /** [pid]: ProfilingLog */
-  profilingLog: z.record(z.coerce.number(), profilingLogSchema),
+  // profilingLog: z.record(z.coerce.number(), profilingLogSchema),
 
   /** [pid]: ProfilingLog */
-  profileGatheringLog: z.record(z.coerce.number(), profilingLogSchema),
+  // profileGatheringLog: z.record(z.coerce.number(), profilingLogSchema),
 });

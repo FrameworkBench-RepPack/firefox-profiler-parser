@@ -1,10 +1,21 @@
 import {
   PowerAmountUnit,
   PowerAmount,
-  type BenchmarkPowerConsumption,
-  PowerAmountTimeSeries,
+  PowerAmountSeries,
+  type SerializedPowerAmount,
+  type SerializedPowerAmountSeries,
 } from "../power-amount.ts";
 import { type Counter } from "../schemas/profilerSchema.ts";
+
+export type SerializedBenchmarkPowerConsumption = {
+  total: SerializedPowerAmount;
+  measurements: SerializedPowerAmountSeries;
+};
+
+export type BenchmarkPowerConsumption = {
+  total: PowerAmount;
+  measurements: PowerAmountSeries;
+};
 
 export function processPowerConsumption(
   counter: Counter
@@ -18,9 +29,12 @@ export function processPowerConsumption(
   if (timeIndex === undefined || powerIndex === undefined)
     throw new Error("Counter does not contain power samples");
 
-  const powerConsumption: BenchmarkPowerConsumption = {
-    total: new PowerAmount(0, PowerAmountUnit.PicoWattHour),
-    measurements: new PowerAmountTimeSeries(PowerAmountUnit.PicoWattHour),
+  const powerConsumption: {
+    total: number;
+    measurements: { time: number; power: number }[];
+  } = {
+    total: 0,
+    measurements: [],
   };
 
   for (const sample of counter.samples.data) {
@@ -29,12 +43,21 @@ export function processPowerConsumption(
 
     if (!time || !power) throw new Error("Time or power not defined");
 
-    powerConsumption.total.amount += power;
-    powerConsumption.measurements.series.push({
+    powerConsumption.total += power;
+    powerConsumption.measurements.push({
       time,
       power,
     });
   }
 
-  return powerConsumption;
+  return {
+    total: new PowerAmount(
+      powerConsumption.total,
+      PowerAmountUnit.PicoWattHour
+    ),
+    measurements: new PowerAmountSeries(
+      PowerAmountUnit.PicoWattHour,
+      powerConsumption.measurements
+    ),
+  };
 }

@@ -15,61 +15,166 @@ const _conversionToWh: Record<PowerAmountUnit, number> = {
   [PowerAmountUnit.WattHour]: 1, // 1 Wh = 1 Wh
 } as const;
 
-export class PowerAmount {
+function _convertPower(
+  newUnit: PowerAmountUnit,
+  currUnit: PowerAmountUnit,
+  currAmount: number
+) {
+  const amountInWh = currAmount * _conversionToWh[currUnit];
+  return amountInWh / _conversionToWh[newUnit];
+}
+
+export type SerializedPowerAmount = {
   amount: number;
   unit: PowerAmountUnit;
+};
+
+export class PowerAmount {
+  #amount: number;
+  #unit: PowerAmountUnit;
 
   constructor(amount: number, unit: PowerAmountUnit) {
-    this.amount = amount;
-    this.unit = unit;
+    this.#amount = amount;
+    this.#unit = unit;
   }
 
-  // TODO: Efficiency can be improved
+  /**
+   * Function to convert the power amount to another unit
+   * @param newUnit The new power unit
+   */
   convert(newUnit: PowerAmountUnit) {
-    if (this.unit === newUnit) return;
+    if (this.#unit === newUnit) return;
 
-    const amountInWh = this.amount * _conversionToWh[this.unit];
-
-    this.unit = newUnit;
-    this.amount = amountInWh / _conversionToWh[newUnit];
+    this.#unit = newUnit;
+    this.#amount = _convertPower(newUnit, this.#unit, this.#amount);
   }
 
+  /**
+   * Function to get the power amount
+   * @param newUnit An optional unit for the returned power
+   * @returns The amount of power
+   */
+  getAmount(newUnit: PowerAmountUnit = PowerAmountUnit.PicoWattHour) {
+    if (newUnit !== this.#unit)
+      return _convertPower(newUnit, this.#unit, this.#amount);
+    return this.#amount;
+  }
+
+  /**
+   * Function to set the power amount
+   * @param amount An optional unit for the returned power
+   * @returns The amount of power
+   */
+  addAmount(amount: PowerAmount) {
+    this.#amount += amount.getAmount(this.#unit);
+  }
+
+  setAmount(amount: number) {
+    this.#amount = amount;
+  }
+
+  /**
+   * Getter for the power unit
+   * @returns The power unit
+   */
+  getUnit() {
+    return this.#unit;
+  }
+
+  /**
+   * Utility function to get a preformatted string
+   * @param decimals Number of decimals to show for the power amount
+   * @returns A string representation of the power amount
+   */
   getString(decimals?: number): string {
-    return `${decimals ? this.amount.toFixed(decimals) : this.amount} ${
-      this.unit
+    return `${decimals ? this.#amount.toFixed(decimals) : this.#amount} ${
+      this.#unit
     }`;
+  }
+
+  /**
+   * Function to facilitate passing these objects between worker and main thread
+   * @returns An object representing the PowerAmount object
+   */
+  toJSON(): SerializedPowerAmount {
+    return {
+      amount: this.#amount,
+      unit: this.#unit,
+    };
+  }
+
+  static fromJSON(input: SerializedPowerAmount) {
+    return new PowerAmount(input.amount, input.unit);
   }
 }
 
-export class PowerAmountTimeSeries {
+export type SerializedPowerAmountSeries = {
   series: { time: number; power: number }[];
   unit: PowerAmountUnit;
+};
+
+export class PowerAmountSeries {
+  #series: { time: number; power: number }[];
+  #unit: PowerAmountUnit;
 
   constructor(
     unit: PowerAmountUnit,
     series?: { time: number; power: number }[]
   ) {
-    this.series = series ? series : [];
-    this.unit = unit;
+    this.#series = series ? series : [];
+    this.#unit = unit;
   }
 
-  #convertEntry(amount: number, newUnit: PowerAmountUnit): number {
-    const amountInWh = amount * _conversionToWh[this.unit];
-    return amountInWh / _conversionToWh[newUnit];
-  }
-
+  /**
+   * Function to convert the power amounts to another unit
+   * @param newUnit The new power unit
+   */
   convert(newUnit: PowerAmountUnit) {
-    if (this.unit === newUnit) return;
+    if (this.#unit === newUnit) return;
 
-    for (const entry of this.series) {
-      entry.power = this.#convertEntry(entry.power, newUnit);
+    for (const entry of this.#series) {
+      entry.power = _convertPower(newUnit, this.#unit, entry.power);
     }
 
-    this.unit = newUnit;
+    this.#unit = newUnit;
+  }
+
+  /**
+   * Function to get the measurement series
+   * @param newUnit An optional unit for the returned power
+   * @returns The amount of power
+   */
+  getMeasurements(newUnit: PowerAmountUnit = PowerAmountUnit.PicoWattHour) {
+    if (newUnit !== this.#unit)
+      return this.#series.map((entry) => {
+        return {
+          time: entry.time,
+          power: _convertPower(newUnit, this.#unit, entry.power),
+        };
+      });
+    return this.#series;
+  }
+
+  /**
+   * Getter for the power unit
+   * @returns The power unit
+   */
+  getUnit() {
+    return this.#unit;
+  }
+
+  /**
+   * Function to facilitate passing these objects between worker and main thread
+   * @returns An object representing the PowerAmountTimeSeries object
+   */
+  toJSON(): SerializedPowerAmountSeries {
+    return {
+      series: this.#series,
+      unit: this.#unit,
+    };
+  }
+
+  static fromJSON(input: SerializedPowerAmountSeries) {
+    return new PowerAmountSeries(input.unit, input.series);
   }
 }
-
-export type BenchmarkPowerConsumption = {
-  total: PowerAmount;
-  measurements: PowerAmountTimeSeries;
-};

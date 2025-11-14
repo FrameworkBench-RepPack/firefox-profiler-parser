@@ -1,17 +1,17 @@
-import { parentPort, workerData, type MessagePort } from "worker_threads";
+import { parentPort } from "worker_threads";
 import {
   MessageType,
   type WorkerMessage,
   type MessageStructures,
+  type SerializedProcessedFile,
 } from "./worker-types.ts";
 import { type InputFile, loadFile } from "../utilities/file-helpers.ts";
 import { profilerSchema } from "../schemas/profilerSchema.ts";
-import { processPowerConsumption } from "../utilities/power-utilities.ts";
 import {
   type BenchmarkPowerConsumption,
-  PowerAmount,
-  PowerAmountUnit,
-} from "../power-amount.ts";
+  processPowerConsumption,
+} from "../utilities/power-utilities.ts";
+import { PowerAmount, PowerAmountUnit } from "../power-amount.ts";
 
 function onWorkerMessage<T extends MessageType>(
   type: T,
@@ -24,24 +24,23 @@ function onWorkerMessage<T extends MessageType>(
 
 function getAveragePowerConsumption(inputs: PowerAmount[]): PowerAmount {
   const consumption = inputs.reduce<PowerAmount>((acc, curr) => {
-    curr.convert(PowerAmountUnit.PicoWattHour);
-    acc.amount += curr.amount;
+    acc.addAmount(curr);
     return acc;
   }, new PowerAmount(0, PowerAmountUnit.PicoWattHour));
 
-  consumption.amount = consumption.amount / inputs.length;
+  consumption.setAmount(consumption.getAmount() / inputs.length);
   return consumption;
 }
 
 function getMeanPowerConsumption(inputs: PowerAmount[]): PowerAmount {
   const mean =
     inputs.reduce((acc, curr) => {
-      acc += curr.amount;
+      acc += curr.getAmount(PowerAmountUnit.PicoWattHour);
       return acc;
     }, 0) / inputs.length;
 
   const sumPart = inputs.reduce((acc, curr) => {
-    acc += (curr.amount - mean) ** 2;
+    acc += (curr.getAmount(PowerAmountUnit.PicoWattHour) - mean) ** 2;
     return acc;
   }, 0);
 
@@ -55,11 +54,13 @@ function postMessage<T extends MessageType>(message: MessageStructures[T][0]) {
   parentPort?.postMessage(message);
 }
 
-async function processFile(file: InputFile): Promise<{
+type ProcessedFile = {
   name: string;
   path: string;
   powerConsumption: BenchmarkPowerConsumption;
-}> {
+};
+
+async function processFile(file: InputFile): Promise<ProcessedFile> {
   const loadedFile = await loadFile(file);
   const parsedFile = await profilerSchema.safeParseAsync(
     JSON.parse(loadedFile.content)
@@ -94,7 +95,6 @@ async function processFile(file: InputFile): Promise<{
     );
 
   const powerConsumption = processPowerConsumption(powerCounter);
-  powerConsumption.measurements.series = [];
 
   return {
     powerConsumption: powerConsumption,
@@ -102,13 +102,25 @@ async function processFile(file: InputFile): Promise<{
   };
 }
 
+function serializeProcessedFile(
+  processedFile: ProcessedFile
+): SerializedProcessedFile {
+  return {
+    ...processedFile,
+    powerConsumption: {
+      total: processedFile.powerConsumption.total.toJSON(),
+      measurements: processedFile.powerConsumption.measurements.toJSON(),
+    },
+  };
+}
+
 (async () => {
   if (!parentPort) throw new Error("Message channel 'parentPort' not defined");
 
   onWorkerMessage(MessageType.Start, async ({ payload }) => {
-    const fileProcessingPromises = payload.files.map(async (file) => {
-      return processFile(file);
-    });
+    const fileProcessingPromises = payload.files.map(async (file) =>
+      processFile(file)
+    );
 
     const processedFiles = await Promise.all(fileProcessingPromises);
 
@@ -119,11 +131,11 @@ async function processFile(file: InputFile): Promise<{
         framework: payload.framework,
         average: getAveragePowerConsumption(
           processedFiles.map((file) => file.powerConsumption.total)
-        ),
+        ).toJSON(),
         standardDeviation: getMeanPowerConsumption(
           processedFiles.map((file) => file.powerConsumption.total)
-        ),
-        // files: processedFiles,
+        ).toJSON(),
+        files: processedFiles.map((f) => serializeProcessedFile(f)),
       },
     });
   });
