@@ -45,8 +45,8 @@ export class PowerAmount {
   convert(newUnit: PowerAmountUnit) {
     if (this.#unit === newUnit) return;
 
-    this.#unit = newUnit;
     this.#amount = _convertPower(newUnit, this.#unit, this.#amount);
+    this.#unit = newUnit;
   }
 
   /**

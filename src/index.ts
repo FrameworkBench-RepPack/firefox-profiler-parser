@@ -87,7 +87,6 @@ const PROCESSING_WORKER_PATH = path.resolve(
 
   // TODO: Should take power consumption unit into consideration
   for (const result of processedData) {
-    console.log(result.average);
     const average: PowerAmount = PowerAmount.fromJSON(result.average);
     average.convert(PowerAmountUnit.MicroWattHour);
 
@@ -95,6 +94,7 @@ const PROCESSING_WORKER_PATH = path.resolve(
       result.standardDeviation
     );
     standardDeviation.convert(PowerAmountUnit.MicroWattHour);
+
     console.log(
       `${result.benchmark} - ${result.framework} - Average: ${average.getString(
         2
