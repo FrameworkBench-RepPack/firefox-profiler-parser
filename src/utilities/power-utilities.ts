@@ -18,7 +18,7 @@ export type BenchmarkPowerConsumption = {
 };
 
 export function processPowerConsumption(
-  counter: Counter
+  counter: Counter,
 ): BenchmarkPowerConsumption {
   if (counter.category !== "power")
     throw new Error("Counter does not contain power samples");
@@ -53,11 +53,11 @@ export function processPowerConsumption(
   return {
     total: new PowerAmount(
       powerConsumption.total,
-      PowerAmountUnit.PicoWattHour
+      PowerAmountUnit.PicoWattHour,
     ),
     measurements: new PowerAmountSeries(
       PowerAmountUnit.PicoWattHour,
-      powerConsumption.measurements
+      powerConsumption.measurements,
     ),
   };
 }

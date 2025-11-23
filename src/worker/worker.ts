@@ -15,7 +15,7 @@ import { PowerAmount, PowerAmountUnit } from "../power-amount.ts";
 
 function onWorkerMessage<T extends MessageType>(
   type: T,
-  handler: (message: WorkerMessage<T>) => void
+  handler: (message: WorkerMessage<T>) => void,
 ) {
   parentPort?.on("message", (message) => {
     if (message.type === type) handler(message as WorkerMessage<T>);
@@ -23,10 +23,13 @@ function onWorkerMessage<T extends MessageType>(
 }
 
 function getAveragePowerConsumption(inputs: PowerAmount[]): PowerAmount {
-  const consumption = inputs.reduce<PowerAmount>((acc, curr) => {
-    acc.addAmount(curr);
-    return acc;
-  }, new PowerAmount(0, PowerAmountUnit.PicoWattHour));
+  const consumption = inputs.reduce<PowerAmount>(
+    (acc, curr) => {
+      acc.addAmount(curr);
+      return acc;
+    },
+    new PowerAmount(0, PowerAmountUnit.PicoWattHour),
+  );
 
   consumption.setAmount(consumption.getAmount() / inputs.length);
   return consumption;
@@ -46,7 +49,7 @@ function getMeanPowerConsumption(inputs: PowerAmount[]): PowerAmount {
 
   return new PowerAmount(
     Math.sqrt(sumPart / inputs.length),
-    PowerAmountUnit.PicoWattHour
+    PowerAmountUnit.PicoWattHour,
   );
 }
 
@@ -63,12 +66,12 @@ type ProcessedFile = {
 async function processFile(file: InputFile): Promise<ProcessedFile> {
   const loadedFile = await loadFile(file);
   const parsedFile = await profilerSchema.safeParseAsync(
-    JSON.parse(loadedFile.content)
+    JSON.parse(loadedFile.content),
   );
 
   if (!parsedFile.success)
     throw new Error(
-      `Failed to parse file: "${file.path}" with error: ${parsedFile.error}`
+      `Failed to parse file: "${file.path}" with error: ${parsedFile.error}`,
     );
 
   // Identify the process of the utilized tap
@@ -82,16 +85,16 @@ async function processFile(file: InputFile): Promise<ProcessedFile> {
 
   if (!localhostProcess)
     throw new Error(
-      "Profiling does not contain a process for a page hosted locally"
+      "Profiling does not contain a process for a page hosted locally",
     );
 
   const powerCounter = localhostProcess.counters.find(
-    (counter) => counter.category === "power"
+    (counter) => counter.category === "power",
   );
 
   if (!powerCounter)
     throw new Error(
-      "Profiling does not contain power counters for the localhost process"
+      "Profiling does not contain power counters for the localhost process",
     );
 
   const powerConsumption = processPowerConsumption(powerCounter);
@@ -103,7 +106,7 @@ async function processFile(file: InputFile): Promise<ProcessedFile> {
 }
 
 function serializeProcessedFile(
-  processedFile: ProcessedFile
+  processedFile: ProcessedFile,
 ): SerializedProcessedFile {
   return {
     ...processedFile,
@@ -119,7 +122,7 @@ function serializeProcessedFile(
 
   onWorkerMessage(MessageType.Start, async ({ payload }) => {
     const fileProcessingPromises = payload.files.map(async (file) =>
-      processFile(file)
+      processFile(file),
     );
 
     const processedFiles = await Promise.all(fileProcessingPromises);
@@ -130,10 +133,10 @@ function serializeProcessedFile(
         benchmark: payload.benchmark,
         framework: payload.framework,
         average: getAveragePowerConsumption(
-          processedFiles.map((file) => file.powerConsumption.total)
+          processedFiles.map((file) => file.powerConsumption.total),
         ).toJSON(),
         standardDeviation: getMeanPowerConsumption(
-          processedFiles.map((file) => file.powerConsumption.total)
+          processedFiles.map((file) => file.powerConsumption.total),
         ).toJSON(),
         files: processedFiles.map((f) => serializeProcessedFile(f)),
       },

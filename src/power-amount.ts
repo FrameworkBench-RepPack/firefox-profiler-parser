@@ -18,7 +18,7 @@ const _conversionToWh: Record<PowerAmountUnit, number> = {
 function _convertPower(
   newUnit: PowerAmountUnit,
   currUnit: PowerAmountUnit,
-  currAmount: number
+  currAmount: number,
 ) {
   const amountInWh = currAmount * _conversionToWh[currUnit];
   return amountInWh / _conversionToWh[newUnit];
@@ -119,7 +119,7 @@ export class PowerAmountSeries {
 
   constructor(
     unit: PowerAmountUnit,
-    series?: { time: number; power: number }[]
+    series?: { time: number; power: number }[],
   ) {
     this.#series = series ? series : [];
     this.#unit = unit;

@@ -9,7 +9,7 @@ import {
 export function onWorkerMessage<T extends MessageType>(
   worker: Worker,
   type: T,
-  handler: (message: WorkerMessage<T>) => void
+  handler: (message: WorkerMessage<T>) => void,
 ) {
   worker.on("message", (message) => {
     if (message.type === type) handler(message as WorkerMessage<T>);
@@ -43,7 +43,7 @@ export function startWorker({
       processedData.push(message.payload);
 
       console.log(
-        `Worker finished task for: ${message.payload.benchmark} - ${message.payload.framework}`
+        `Worker finished task for: ${message.payload.benchmark} - ${message.payload.framework}`,
       );
 
       const nextTask = taskQueue.pop();

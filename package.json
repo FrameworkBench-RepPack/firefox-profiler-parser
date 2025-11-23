@@ -4,7 +4,9 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "parse": "tsx src/index.ts"
+    "parse": "tsx src/index.ts",
+    "format": "prettier --write .",
+    "lint": "prettier --check ."
   },
   "repository": {
     "type": "git",
@@ -21,6 +23,7 @@
   "devDependencies": {
     "@types/node": "^24.9.1",
     "commander": "^14.0.2",
+    "prettier": "^3.6.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },

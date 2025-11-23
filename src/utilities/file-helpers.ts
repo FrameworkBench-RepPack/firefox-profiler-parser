@@ -30,13 +30,13 @@ function _processPath(input: string) {
 }
 
 export async function getBenchmarkFiles(
-  inputPath: string
+  inputPath: string,
 ): Promise<InputFile[]> {
   const processedPath = _processPath(inputPath);
 
   if (!existsSync(processedPath))
     throw new FileLoadingError(
-      `Incorrect path - does not exist: ${processedPath}`
+      `Incorrect path - does not exist: ${processedPath}`,
     );
 
   const pathStats = await fs.lstat(processedPath);
@@ -47,7 +47,7 @@ export async function getBenchmarkFiles(
 
     if (files.length < 1)
       throw new FileLoadingError(
-        `Folder does not contain any files - ${processedPath}`
+        `Folder does not contain any files - ${processedPath}`,
       );
 
     return files.map((file) => {
@@ -70,12 +70,12 @@ export async function getBenchmarkFiles(
   }
 
   throw new FileLoadingError(
-    `Path does not point to a file or folder - ${inputPath}`
+    `Path does not point to a file or folder - ${inputPath}`,
   );
 }
 
 export async function loadFile(
-  inputFile: InputFile
+  inputFile: InputFile,
 ): Promise<ImportedFile<string>> {
   return {
     ...inputFile,
@@ -84,7 +84,7 @@ export async function loadFile(
 }
 
 export function groupFiles(
-  files: InputFile[]
+  files: InputFile[],
 ): Record<string, Record<string, InputFile[]>> {
   // Record<BenchmarkName, Record<Framework, List of runs>>
   const benchmarks: Record<string, Record<string, InputFile[]>> = {};
@@ -93,7 +93,7 @@ export function groupFiles(
 
     if (!iteration || !benchmark || !framework)
       throw new Error(
-        "Invalid filename - Does not follow convention 'framework_benchmark_iteration'"
+        "Invalid filename - Does not follow convention 'framework_benchmark_iteration'",
       );
 
     // Create object and list if necessary and add file
@@ -106,7 +106,7 @@ export function groupFiles(
 
 export async function getResultsPath(
   inputPath: string,
-  folderName: string = "processed-results"
+  folderName: string = "processed-results",
 ): Promise<string> {
   const processedPath = _processPath(inputPath);
 
@@ -114,12 +114,12 @@ export async function getResultsPath(
   const resultsPath = pathStats.isDirectory()
     ? path.join(processedPath, `/${folderName}`)
     : pathStats.isFile()
-    ? path.resolve(processedPath, "../")
-    : undefined;
+      ? path.resolve(processedPath, "../")
+      : undefined;
 
   if (resultsPath === undefined)
     throw new Error(
-      `Path does not point to a folder or a file: ${processedPath}`
+      `Path does not point to a folder or a file: ${processedPath}`,
     );
 
   if (!existsSync(resultsPath)) fs.mkdir(resultsPath);

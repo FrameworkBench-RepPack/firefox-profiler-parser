@@ -39,16 +39,16 @@ export const profileProcessSchema = z.array(
         startTime: z.number(),
         endTime: z.number().nullable(),
         reason: z.string(),
-      })
+      }),
     ),
     profilingLog: z.record(
       z.string(),
       z.object({
         profilingLogBegin_TSms: z.number(),
         profilingLogEnd_TSms: z.number(),
-      })
+      }),
     ),
-  })
+  }),
 );
 
 /** Optional logs that older versions of firefox does not support

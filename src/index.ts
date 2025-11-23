@@ -17,19 +17,19 @@ import { writeCSV } from "./utilities/csv-utilities";
 
 const PROCESSING_WORKER_PATH = path.resolve(
   import.meta.dirname,
-  "./worker/worker.ts"
+  "./worker/worker.ts",
 );
 
 (async () => {
   program
     .name("Firefox Profiler Parser")
     .description(
-      "A CLI tool for processing power measurements from the Firefox Profiler"
+      "A CLI tool for processing power measurements from the Firefox Profiler",
     )
     .version("1.0.0")
     .argument(
       "<path>",
-      "Path to a profiler .json file or a folder containing multiple profiler .json files"
+      "Path to a profiler .json file or a folder containing multiple profiler .json files",
     )
     .option("-t, --threads <entries>", "specify number of workers to use", "1")
     .option("--exportRaw", "export power measurements in csv file", false);
@@ -57,7 +57,7 @@ const PROCESSING_WORKER_PATH = path.resolve(
     console.log(`Benchmark: ${benchmark}`);
     for (const [framework, files] of Object.entries(benchmarkObject)) {
       console.log(
-        `Creating Worker Task - Framework: ${framework}, Iterations: ${files.length}`
+        `Creating Worker Task - Framework: ${framework}, Iterations: ${files.length}`,
       );
 
       const workerData: WorkerInputData = { benchmark, framework, files };
@@ -78,7 +78,7 @@ const PROCESSING_WORKER_PATH = path.resolve(
         taskQueue: tasks,
         processedData,
         workerPath: PROCESSING_WORKER_PATH,
-      })
+      }),
     );
   }
   await Promise.all(workers);
@@ -91,14 +91,14 @@ const PROCESSING_WORKER_PATH = path.resolve(
     average.convert(PowerAmountUnit.MicroWattHour);
 
     const standardDeviation: PowerAmount = PowerAmount.fromJSON(
-      result.standardDeviation
+      result.standardDeviation,
     );
     standardDeviation.convert(PowerAmountUnit.MicroWattHour);
 
     console.log(
       `${result.benchmark} - ${result.framework} - Average: ${average.getString(
-        2
-      )} Standard deviation: ${standardDeviation.getString(2)}`
+        2,
+      )} Standard deviation: ${standardDeviation.getString(2)}`,
     );
 
     // Extract total power measurements
@@ -110,7 +110,7 @@ const PROCESSING_WORKER_PATH = path.resolve(
       fields: result.files.map((processedFile, index) => [
         index,
         PowerAmount.fromJSON(processedFile.powerConsumption.total).getAmount(
-          PowerAmountUnit.MicroWattHour
+          PowerAmountUnit.MicroWattHour,
         ),
       ]),
     });
@@ -121,7 +121,7 @@ const PROCESSING_WORKER_PATH = path.resolve(
         if (!fileName) throw new Error("Splitting file failed");
 
         const powerAmountSeries = PowerAmountSeries.fromJSON(
-          file.powerConsumption.measurements
+          file.powerConsumption.measurements,
         );
 
         writeCSV({

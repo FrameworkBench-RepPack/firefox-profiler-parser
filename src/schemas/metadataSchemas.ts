@@ -45,7 +45,7 @@ export const processMetaSchema = z.intersection(
       eventDelay: z.string(),
       threadCPUDelta: z.string(),
     }),
-  })
+  }),
 );
 
 export const fullMetaSchema = z.intersection(
@@ -72,5 +72,5 @@ export const fullMetaSchema = z.intersection(
       data: z.array(z.array(z.string())),
     }),
     device: z.string().optional(), // Android only property
-  })
+  }),
 );
