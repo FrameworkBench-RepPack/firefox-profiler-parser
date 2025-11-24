@@ -32,7 +32,7 @@ export const profileProcessSchema = z.array(
     // Missing: libs, processes
     meta: processMetaSchema,
     pages: pageListSchema,
-    counters: countersListSchema,
+    counters: countersListSchema.optional(),
     threads: threadListSchema,
     pausedRanges: z.array(
       z.object({

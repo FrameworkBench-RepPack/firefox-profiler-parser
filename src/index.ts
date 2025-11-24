@@ -87,18 +87,20 @@ const PROCESSING_WORKER_PATH = path.resolve(
 
   // TODO: Should take power consumption unit into consideration
   for (const result of processedData) {
-    const average: PowerAmount = PowerAmount.fromJSON(result.average);
-    average.convert(PowerAmountUnit.MicroWattHour);
-
-    const standardDeviation: PowerAmount = PowerAmount.fromJSON(
-      result.standardDeviation,
+    const average: PowerAmount | undefined = PowerAmount.fromJSON(
+      result.powerAverage,
     );
-    standardDeviation.convert(PowerAmountUnit.MicroWattHour);
+    average?.convert(PowerAmountUnit.MicroWattHour);
+
+    const standardDeviation: PowerAmount | undefined = PowerAmount.fromJSON(
+      result.powerStandardDeviation,
+    );
+    standardDeviation?.convert(PowerAmountUnit.MicroWattHour);
 
     console.log(
-      `${result.benchmark} - ${result.framework} - Average: ${average.getString(
-        2,
-      )} Standard deviation: ${standardDeviation.getString(2)}`,
+      `${result.benchmark} - ${result.framework} - Power average: ${
+        average ? average.getString(2) : "N/A"
+      } Standard deviation: ${standardDeviation ? standardDeviation.getString(2) : "N/A"}`,
     );
 
     // Extract total power measurements
@@ -109,9 +111,9 @@ const PROCESSING_WORKER_PATH = path.resolve(
       header: ["Iteration", `Total Power (${PowerAmountUnit.MicroWattHour})`],
       fields: result.files.map((processedFile, index) => [
         index,
-        PowerAmount.fromJSON(processedFile.powerConsumption.total).getAmount(
+        PowerAmount.fromJSON(processedFile.powerConsumption?.total)?.getAmount(
           PowerAmountUnit.MicroWattHour,
-        ),
+        ) ?? "N/A",
       ]),
     });
 
@@ -121,15 +123,20 @@ const PROCESSING_WORKER_PATH = path.resolve(
         if (!fileName) throw new Error("Splitting file failed");
 
         const powerAmountSeries = PowerAmountSeries.fromJSON(
-          file.powerConsumption.measurements,
+          file.powerConsumption?.measurements,
         );
 
         writeCSV({
           path: resultsFolder + `/${fileName}_power-raw.csv`,
-          header: ["Time", `Total Power (${powerAmountSeries.getUnit()})`],
-          fields: powerAmountSeries
-            .getMeasurements()
-            .map((measurement) => [measurement.time, measurement.power]),
+          header: [
+            "Time",
+            `Total Power (${powerAmountSeries?.getUnit() ?? "N/A"})`,
+          ],
+          fields:
+            powerAmountSeries
+              ?.getMeasurements()
+              .map((measurement) => [measurement.time, measurement.power]) ??
+            [],
         });
       }
     }

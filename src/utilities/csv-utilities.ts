@@ -3,7 +3,7 @@ import fs from "node:fs";
 type WriteCsvInput = {
   path: string;
   header: string[];
-  fields: number[][];
+  fields: (number | string)[][];
 };
 
 export function writeCSV(input: WriteCsvInput) {

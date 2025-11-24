@@ -103,7 +103,10 @@ export class PowerAmount {
     };
   }
 
-  static fromJSON(input: SerializedPowerAmount) {
+  static fromJSON(
+    input: SerializedPowerAmount | undefined,
+  ): PowerAmount | undefined {
+    if (input === undefined) return undefined;
     return new PowerAmount(input.amount, input.unit);
   }
 }
@@ -174,7 +177,10 @@ export class PowerAmountSeries {
     };
   }
 
-  static fromJSON(input: SerializedPowerAmountSeries) {
+  static fromJSON(
+    input: SerializedPowerAmountSeries | undefined,
+  ): PowerAmountSeries | undefined {
+    if (input === undefined) return undefined;
     return new PowerAmountSeries(input.unit, input.series);
   }
 }

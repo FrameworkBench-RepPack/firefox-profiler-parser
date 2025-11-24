@@ -3,7 +3,7 @@ import { type SerializedPowerAmount } from "../power-amount.ts";
 import { type SerializedBenchmarkPowerConsumption } from "../utilities/power-utilities.ts";
 
 export type SerializedProcessedFile = InputFile & {
-  powerConsumption: SerializedBenchmarkPowerConsumption;
+  powerConsumption?: SerializedBenchmarkPowerConsumption;
 };
 
 export type WorkerInputData = {
@@ -14,8 +14,8 @@ export type WorkerInputData = {
 export type WorkerOutputData = {
   benchmark: string;
   framework: string;
-  average: SerializedPowerAmount;
-  standardDeviation: SerializedPowerAmount;
+  powerAverage?: SerializedPowerAmount;
+  powerStandardDeviation?: SerializedPowerAmount;
   files: SerializedProcessedFile[];
 };
 
