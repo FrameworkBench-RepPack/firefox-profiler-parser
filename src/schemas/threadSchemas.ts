@@ -31,5 +31,6 @@ const threadSchema = z.object({
   }),
   stringTable: z.array(z.string()),
 });
+export type Thread = z.infer<typeof threadSchema>;
 
 export const threadListSchema = z.array(threadSchema);

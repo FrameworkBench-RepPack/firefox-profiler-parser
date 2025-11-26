@@ -100,7 +100,11 @@ const PROCESSING_WORKER_PATH = path.resolve(
     console.log(
       `${result.benchmark} - ${result.framework} - Power average: ${
         average ? average.getString(2) : "N/A"
-      } Standard deviation: ${standardDeviation ? standardDeviation.getString(2) : "N/A"}`,
+      } Standard deviation: ${
+        standardDeviation ? standardDeviation.getString(2) : "N/A"
+      } - Bandwidth: ${
+        result.bandwidthAverage ? `${result.bandwidthAverage / 1000} KB` : "N/A"
+      } Standard deviation: ${result.bandwidthStandardDeviation ?? "N/A"}`,
     );
 
     // Extract total power measurements
@@ -114,6 +118,18 @@ const PROCESSING_WORKER_PATH = path.resolve(
         PowerAmount.fromJSON(processedFile.powerConsumption?.total)?.getAmount(
           PowerAmountUnit.MicroWattHour,
         ) ?? "N/A",
+      ]),
+    });
+
+    // Extract total bandwidth measurements
+    writeCSV({
+      path:
+        resultsFolder +
+        `/${result.benchmark}-${result.framework}_bandwidth-total.csv`,
+      header: ["Iteration", "Total Bandwidth (bytes)"],
+      fields: result.files.map((processedFile, index) => [
+        index,
+        processedFile.bandwidth?.total ?? "N/A",
       ]),
     });
 
@@ -137,6 +153,12 @@ const PROCESSING_WORKER_PATH = path.resolve(
               ?.getMeasurements()
               .map((measurement) => [measurement.time, measurement.power]) ??
             [],
+        });
+
+        writeCSV({
+          path: resultsFolder + `/${fileName}_bandwidth-raw.csv`,
+          header: ["File", "Total Bandwidth (bytes)"],
+          fields: file.bandwidth?.measurements ?? [],
         });
       }
     }

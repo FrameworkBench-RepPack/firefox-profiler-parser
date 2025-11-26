@@ -57,6 +57,21 @@ const networkPayloadSchema = z.object({
   responseEnd: z.number().optional(),
 });
 
+export type NetworkPayload = z.infer<typeof networkPayloadSchema>;
+
+export function isNetworkPayload(
+  candidate: unknown,
+): candidate is NetworkPayload {
+  return (
+    typeof candidate === "object" &&
+    candidate !== null &&
+    "type" in candidate &&
+    candidate.type === "Network" &&
+    "URI" in candidate &&
+    typeof candidate.URI === "string"
+  );
+}
+
 const MarkerPhaseEnum = {
   Instant: 0,
   Interval: 1,

@@ -33,7 +33,7 @@ export const profileProcessSchema = z.array(
     meta: processMetaSchema,
     pages: pageListSchema,
     counters: countersListSchema.optional(),
-    threads: threadListSchema,
+    threads: threadListSchema.optional(),
     pausedRanges: z.array(
       z.object({
         startTime: z.number(),

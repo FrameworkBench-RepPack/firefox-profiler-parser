@@ -12,6 +12,10 @@ import {
   processPowerConsumption,
 } from "../utilities/power-utilities.ts";
 import { PowerAmount, PowerAmountUnit } from "../power-amount.ts";
+import {
+  type BenchmarkBandwidth,
+  processBandwidth,
+} from "../utilities/bandwidth.ts";
 
 function onWorkerMessage<T extends MessageType>(
   type: T,
@@ -59,6 +63,30 @@ function getPowerStandardDeviation(
   );
 }
 
+function getAverageBandwidth(inputs: number[]): number | undefined {
+  if (inputs.length === 0) return undefined;
+
+  let totalBytes = 0;
+  for (const input of inputs) {
+    totalBytes += input;
+  }
+
+  return totalBytes / inputs.length;
+}
+
+function getBandwidthStandardDeviation(inputs: number[]): number | undefined {
+  if (inputs.length === 0) return undefined;
+
+  const mean = getAverageBandwidth(inputs)!;
+
+  const sumPart = inputs.reduce((acc, curr) => {
+    acc += (curr - mean) ** 2;
+    return acc;
+  }, 0);
+
+  return Math.sqrt(sumPart / inputs.length);
+}
+
 function postMessage<T extends MessageType>(message: MessageStructures[T][0]) {
   parentPort?.postMessage(message);
 }
@@ -67,6 +95,7 @@ type ProcessedFile = {
   name: string;
   path: string;
   powerConsumption?: BenchmarkPowerConsumption;
+  bandwidth?: BenchmarkBandwidth;
 };
 
 async function processFile(file: InputFile): Promise<ProcessedFile> {
@@ -103,8 +132,17 @@ async function processFile(file: InputFile): Promise<ProcessedFile> {
     ? processPowerConsumption(powerCounter)
     : undefined;
 
+  const bandwidthMarkers = localhostProcess.threads?.find(
+    (thread) => thread.name === "GeckoMain",
+  )?.markers.data;
+
+  const bandwidth = bandwidthMarkers
+    ? processBandwidth(bandwidthMarkers)
+    : undefined;
+
   return {
     powerConsumption,
+    bandwidth,
     ...file,
   };
 }
@@ -137,6 +175,10 @@ function serializeProcessedFile(
       .map((file) => file.powerConsumption?.total)
       .filter((total) => total !== undefined);
 
+    const processedTotalBandwidth = processedFiles
+      .map((file) => file.bandwidth?.total)
+      .filter((total) => total !== undefined);
+
     postMessage({
       type: MessageType.Finished,
       payload: {
@@ -145,6 +187,10 @@ function serializeProcessedFile(
         powerAverage: getAveragePower(processedTotalPower)?.toJSON(),
         powerStandardDeviation:
           getPowerStandardDeviation(processedTotalPower)?.toJSON(),
+        bandwidthAverage: getAverageBandwidth(processedTotalBandwidth),
+        bandwidthStandardDeviation: getBandwidthStandardDeviation(
+          processedTotalBandwidth,
+        ),
         files: processedFiles.map((f) => serializeProcessedFile(f)),
       },
     });
