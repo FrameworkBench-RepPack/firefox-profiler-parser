@@ -2,11 +2,16 @@ import { program } from "commander";
 import path from "node:path";
 import { mkdirSync, write } from "node:fs";
 import {
+  getAbsolutePath,
   getBenchmarkFiles,
-  getResultsPath,
+  getResultsPaths,
   groupFiles,
 } from "./utilities/file-helpers";
-import { WorkerInputData, WorkerOutputData } from "./worker/worker-types";
+import {
+  ProcessedFile,
+  WorkerInputData,
+  WorkerOutputData,
+} from "./worker/worker-types";
 import {
   PowerAmount,
   PowerAmountSeries,
@@ -83,25 +88,76 @@ const PROCESSING_WORKER_PATH = path.resolve(
   }
   await Promise.all(workers);
 
-  const resultsFolder = await getResultsPath(inputPath);
+  const [resultsPath, summedResultsPath, rawResultsPath] =
+    await getResultsPaths({
+      inputPath,
+      resultsFolderName: "processed-results",
+      summedResultsFolderName: "summed-results",
+      rawResultsFolderName: options.exportRaw ? "raw-results" : undefined,
+    });
 
-  // TODO: Should take power consumption unit into consideration
-  for (const result of processedData) {
-    const average: PowerAmount | undefined = PowerAmount.fromJSON(
-      result.powerAverage,
-    );
-    average?.convert(PowerAmountUnit.MicroWattHour);
+  // Deserialize results
+  const deserializedResults = processedData.map((r) => {
+    return {
+      ...r,
+      powerAverage: PowerAmount.fromJSON(r.powerAverage),
+      powerStandardDeviation: PowerAmount.fromJSON(r.powerStandardDeviation),
+      files: r.files.map((f) => {
+        return {
+          ...f,
+          powerConsumption: {
+            total: PowerAmount.fromJSON(f.powerConsumption?.total),
+            measurements: PowerAmountSeries.fromJSON(
+              f.powerConsumption?.measurements,
+            ),
+          },
+        };
+      }),
+    };
+  });
 
-    const standardDeviation: PowerAmount | undefined = PowerAmount.fromJSON(
-      result.powerStandardDeviation,
-    );
-    standardDeviation?.convert(PowerAmountUnit.MicroWattHour);
+  /* Export per benchmark CSV processed results*/
+  const perBenchmarkCsvEntries = deserializedResults.reduce<
+    Record<string, (string | number)[][]>
+  >((acc, result) => {
+    if (!acc[result.benchmark]) acc[result.benchmark] = [];
+
+    acc[result.benchmark]?.push([
+      result.framework,
+      result.powerAverage?.getAmount(PowerAmountUnit.Joule) ?? "N/A",
+      result.powerStandardDeviation?.getAmount(PowerAmountUnit.Joule) ?? "N/A",
+      result.bandwidthAverage ?? "N/A",
+      result.bandwidthStandardDeviation ?? "N/A",
+    ]);
+
+    return acc;
+  }, {});
+
+  for (const [benchmark, result] of Object.entries(perBenchmarkCsvEntries)) {
+    writeCSV({
+      path: resultsPath + `/${benchmark}.csv`,
+      header: [
+        "Framework",
+        `Average Total Power (${PowerAmountUnit.Joule})`,
+        `Total Power SD (${PowerAmountUnit.Joule})`,
+        `Average Total Bandwidth (B)`,
+        `Total Bandwidth SD (B)`,
+      ],
+      fields: result,
+    });
+  }
+
+  for (const result of deserializedResults) {
+    result.powerAverage?.convert(PowerAmountUnit.MicroWattHour);
+    result.powerStandardDeviation?.convert(PowerAmountUnit.MicroWattHour);
 
     console.log(
       `${result.benchmark} - ${result.framework} - Power average: ${
-        average ? average.getString(2) : "N/A"
+        result.powerAverage ? result.powerAverage.getString(2) : "N/A"
       } Standard deviation: ${
-        standardDeviation ? standardDeviation.getString(2) : "N/A"
+        result.powerStandardDeviation
+          ? result.powerStandardDeviation.getString(2)
+          : "N/A"
       } - Bandwidth: ${
         result.bandwidthAverage ? `${result.bandwidthAverage / 1000} KB` : "N/A"
       } Standard deviation: ${result.bandwidthStandardDeviation ?? "N/A"}`,
@@ -109,26 +165,17 @@ const PROCESSING_WORKER_PATH = path.resolve(
 
     // Extract total power measurements
     writeCSV({
-      path:
-        resultsFolder +
-        `/${result.benchmark}-${result.framework}_power-total.csv`,
-      header: ["Iteration", `Total Power (${PowerAmountUnit.MicroWattHour})`],
+      path: summedResultsPath + `/${result.benchmark}-${result.framework}.csv`,
+      header: [
+        "Iteration",
+        `Total Power (${PowerAmountUnit.Joule})`,
+        "Total Bandwidth (B)",
+      ],
       fields: result.files.map((processedFile, index) => [
         index,
-        PowerAmount.fromJSON(processedFile.powerConsumption?.total)?.getAmount(
-          PowerAmountUnit.MicroWattHour,
+        processedFile.powerConsumption?.total?.getAmount(
+          PowerAmountUnit.Joule,
         ) ?? "N/A",
-      ]),
-    });
-
-    // Extract total bandwidth measurements
-    writeCSV({
-      path:
-        resultsFolder +
-        `/${result.benchmark}-${result.framework}_bandwidth-total.csv`,
-      header: ["Iteration", "Total Bandwidth (bytes)"],
-      fields: result.files.map((processedFile, index) => [
-        index,
         processedFile.bandwidth?.total ?? "N/A",
       ]),
     });
@@ -138,12 +185,13 @@ const PROCESSING_WORKER_PATH = path.resolve(
         const fileName = file.name.split(".")[0];
         if (!fileName) throw new Error("Splitting file failed");
 
-        const powerAmountSeries = PowerAmountSeries.fromJSON(
-          file.powerConsumption?.measurements,
-        );
+        const powerAmountSeries = file.powerConsumption?.measurements;
+        powerAmountSeries?.convert(PowerAmountUnit.Joule);
 
         writeCSV({
-          path: resultsFolder + `/${fileName}_power-raw.csv`,
+          path:
+            rawResultsPath +
+            `/${result.benchmark}-${result.framework}_power-raw.csv`,
           header: [
             "Time",
             `Total Power (${powerAmountSeries?.getUnit() ?? "N/A"})`,
@@ -156,7 +204,9 @@ const PROCESSING_WORKER_PATH = path.resolve(
         });
 
         writeCSV({
-          path: resultsFolder + `/${fileName}_bandwidth-raw.csv`,
+          path:
+            rawResultsPath +
+            `/${result.benchmark}-${result.framework}_bandwidth-raw.csv`,
           header: ["File", "Total Bandwidth (bytes)"],
           fields: file.bandwidth?.measurements ?? [],
         });

@@ -3,6 +3,7 @@ export const PowerAmountUnit = {
   MicroWattHour: "μWh",
   MilliWattHour: "mWh",
   WattHour: "Wh",
+  Joule: "J",
 } as const;
 
 export type PowerAmountUnit =
@@ -13,6 +14,7 @@ const _conversionToWh: Record<PowerAmountUnit, number> = {
   [PowerAmountUnit.MicroWattHour]: 1e-6, // 1 mWh = 1e-6 Wh
   [PowerAmountUnit.MilliWattHour]: 1e-3, // 1 mWh = 1e-3 Wh
   [PowerAmountUnit.WattHour]: 1, // 1 Wh = 1 Wh
+  [PowerAmountUnit.Joule]: 1 / 3600, // 1 J = 1 / 3600 Wh
 } as const;
 
 function _convertPower(

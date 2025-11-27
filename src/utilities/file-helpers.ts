@@ -19,7 +19,7 @@ export type ImportedFile<T = string> = InputFile & {
   content: T;
 };
 
-function _processPath(input: string) {
+export function getAbsolutePath(input: string) {
   // Absolute path - Return normalized path
   if (path.isAbsolute(input)) {
     return path.normalize(input);
@@ -32,7 +32,7 @@ function _processPath(input: string) {
 export async function getBenchmarkFiles(
   inputPath: string,
 ): Promise<InputFile[]> {
-  const processedPath = _processPath(inputPath);
+  const processedPath = getAbsolutePath(inputPath);
 
   if (!existsSync(processedPath))
     throw new FileLoadingError(
@@ -104,25 +104,44 @@ export function groupFiles(
   return benchmarks;
 }
 
-export async function getResultsPath(
-  inputPath: string,
-  folderName: string = "processed-results",
-): Promise<string> {
-  const processedPath = _processPath(inputPath);
+interface ResultsPathProps {
+  inputPath: string;
+  resultsFolderName: string;
+  summedResultsFolderName: string;
+  rawResultsFolderName?: string;
+}
 
-  const pathStats = await fs.lstat(processedPath);
+export async function getResultsPaths({
+  inputPath,
+  resultsFolderName,
+  summedResultsFolderName,
+  rawResultsFolderName,
+}: ResultsPathProps): Promise<[string, string, string | undefined]> {
+  const absoluteInputPath = getAbsolutePath(inputPath);
+
+  const pathStats = await fs.lstat(absoluteInputPath);
   const resultsPath = pathStats.isDirectory()
-    ? path.join(processedPath, `/${folderName}`)
+    ? path.join(absoluteInputPath, `/${resultsFolderName}`)
     : pathStats.isFile()
-      ? path.resolve(processedPath, "../")
+      ? path.resolve(absoluteInputPath, "../")
       : undefined;
 
   if (resultsPath === undefined)
-    throw new Error(
-      `Path does not point to a folder or a file: ${processedPath}`,
-    );
+    throw new Error(`Path does not point to a folder or a file: ${inputPath}`);
 
-  if (!existsSync(resultsPath)) fs.mkdir(resultsPath);
+  if (!existsSync(resultsPath)) await fs.mkdir(resultsPath);
 
-  return resultsPath;
+  // Total results path
+  const totalResultsPath = path.join(resultsPath, summedResultsFolderName);
+  if (!existsSync(totalResultsPath)) await fs.mkdir(totalResultsPath);
+
+  // Raw results path
+  const rawResultsPath = rawResultsFolderName
+    ? path.join(resultsPath, rawResultsFolderName)
+    : undefined;
+
+  if (rawResultsPath && !existsSync(rawResultsPath))
+    await fs.mkdir(rawResultsPath);
+
+  return [resultsPath, totalResultsPath, rawResultsPath];
 }
