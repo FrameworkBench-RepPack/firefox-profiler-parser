@@ -89,7 +89,7 @@ export function groupFiles(
   // Record<BenchmarkName, Record<Framework, List of runs>>
   const benchmarks: Record<string, Record<string, InputFile[]>> = {};
   for (const file of files) {
-    const [framework, benchmark, iteration] = file.name.split("_");
+    const [benchmark, framework, iteration] = file.name.split("_");
 
     if (!iteration || !benchmark || !framework)
       throw new Error(
