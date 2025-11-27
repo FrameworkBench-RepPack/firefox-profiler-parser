@@ -88,11 +88,13 @@ const PROCESSING_WORKER_PATH = path.resolve(
   }
   await Promise.all(workers);
 
-  const [resultsPath, rawResultsPath] = await getResultsPaths({
-    inputPath,
-    folderName: "parsed-results",
-    rawFolderName: options.exportRaw ? "raw-results" : undefined,
-  });
+  const [resultsPath, summedResultsPath, rawResultsPath] =
+    await getResultsPaths({
+      inputPath,
+      resultsFolderName: "processed-results",
+      summedResultsFolderName: "summed-results",
+      rawResultsFolderName: options.exportRaw ? "raw-results" : undefined,
+    });
 
   // Deserialize results
   const deserializedResults = processedData.map((r) => {
@@ -163,7 +165,7 @@ const PROCESSING_WORKER_PATH = path.resolve(
 
     // Extract total power measurements
     writeCSV({
-      path: resultsPath + `/${result.benchmark}-${result.framework}.csv`,
+      path: summedResultsPath + `/${result.benchmark}-${result.framework}.csv`,
       header: [
         "Iteration",
         `Total Power (${PowerAmountUnit.Joule})`,

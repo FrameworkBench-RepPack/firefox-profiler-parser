@@ -106,20 +106,22 @@ export function groupFiles(
 
 interface ResultsPathProps {
   inputPath: string;
-  folderName: string;
-  rawFolderName?: string;
+  resultsFolderName: string;
+  summedResultsFolderName: string;
+  rawResultsFolderName?: string;
 }
 
 export async function getResultsPaths({
   inputPath,
-  folderName,
-  rawFolderName,
-}: ResultsPathProps): Promise<[string, string | undefined]> {
+  resultsFolderName,
+  summedResultsFolderName,
+  rawResultsFolderName,
+}: ResultsPathProps): Promise<[string, string, string | undefined]> {
   const absoluteInputPath = getAbsolutePath(inputPath);
 
   const pathStats = await fs.lstat(absoluteInputPath);
   const resultsPath = pathStats.isDirectory()
-    ? path.join(absoluteInputPath, `/${folderName}`)
+    ? path.join(absoluteInputPath, `/${resultsFolderName}`)
     : pathStats.isFile()
       ? path.resolve(absoluteInputPath, "../")
       : undefined;
@@ -129,12 +131,17 @@ export async function getResultsPaths({
 
   if (!existsSync(resultsPath)) await fs.mkdir(resultsPath);
 
-  const rawResultsPath = rawFolderName
-    ? path.join(resultsPath, rawFolderName)
+  // Total results path
+  const totalResultsPath = path.join(resultsPath, summedResultsFolderName);
+  if (!existsSync(totalResultsPath)) await fs.mkdir(totalResultsPath);
+
+  // Raw results path
+  const rawResultsPath = rawResultsFolderName
+    ? path.join(resultsPath, rawResultsFolderName)
     : undefined;
 
   if (rawResultsPath && !existsSync(rawResultsPath))
     await fs.mkdir(rawResultsPath);
 
-  return [resultsPath, rawResultsPath];
+  return [resultsPath, totalResultsPath, rawResultsPath];
 }
