@@ -1,10 +1,18 @@
 import type { InputFile } from "../utilities/file-helpers.ts";
 import type { SerializedPowerAmount } from "../power-amount.ts";
-import type { SerializedBenchmarkPowerConsumption } from "../utilities/power-utilities.ts";
+import type {
+  BenchmarkPowerConsumption,
+  SerializedBenchmarkPowerConsumption,
+} from "../utilities/power-utilities.ts";
 import type { BenchmarkBandwidth } from "../utilities/bandwidth.ts";
 
 export type SerializedProcessedFile = InputFile & {
   powerConsumption?: SerializedBenchmarkPowerConsumption;
+  bandwidth?: BenchmarkBandwidth;
+};
+
+export type ProcessedFile = InputFile & {
+  powerConsumption?: BenchmarkPowerConsumption;
   bandwidth?: BenchmarkBandwidth;
 };
 
