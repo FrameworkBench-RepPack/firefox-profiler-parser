@@ -145,7 +145,6 @@ const PROCESSING_WORKER_PATH = path.resolve(
     });
   }
 
-  // TODO: Should take power consumption unit into consideration
   for (const result of deserializedResults) {
     result.powerAverage?.convert(PowerAmountUnit.MicroWattHour);
     result.powerStandardDeviation?.convert(PowerAmountUnit.MicroWattHour);
